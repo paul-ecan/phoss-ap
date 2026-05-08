@@ -109,6 +109,16 @@ cd ../phoss-smp/test-scripts
 ./register-test-lab.sh
 ```
 
+## MLS (Message Level Status)
+
+The AP sends AS4 delivery acknowledgements (ApplicationResponse AB) after receiving each inbound document. The MLS sender participant is `iso6523-actorid-upis::0242:000306`, derived from the Peppol Seat ID `POP000306` by stripping the 3-letter prefix and prepending scheme `0242` (`SPIDHelper.SPIS_PARTICIPANT_ID_SCHEME`).
+
+In the test lab, `0242:000306` is registered in the local SMP pointing to `http://phoss-ap:8080/as4`, so MLS acks loop back to the AP itself. The MLS status per outbound transaction progresses to `received_ab` once the ack is processed.
+
+Config properties (both default to enabled/always):
+- `mls.sending.enabled` — global kill switch (default `true`)
+- `mls.type` — `always_send` or `failure_only` (default `always_send`)
+
 ## Test Sender
 
 `phoss-ap-testsender` is a standalone Spring Boot tool for exercising the outbound API. Build it with:
@@ -128,7 +138,7 @@ bash run-single-xml.sh \
   --testsender.peppol.receiver-id=iso6523-actorid-upis::0088:2222222222222
 ```
 
-A successful send returns `"status":"sent"` and `"reportingStatus":"reported"`. The `run-bulk.sh` and `run-bulk-rampup.sh` scripts exercise concurrency (default: 100 docs, 10 threads).
+A successful send returns `"status":"sent"` and `"reportingStatus":"reported"`. The `run-bulk-rampup.sh` script (100 docs, 10 threads, 5s ramp-up) reliably achieves 100/100. The flat `run-bulk.sh` (no ramp-up) hits a concurrent Apache Santuario XML signing limitation at ~10 simultaneous AS4 sessions and should not be expected to pass.
 
 ## Technology Notes
 
