@@ -252,26 +252,57 @@ public class APServletInit
     // Check if the private key is a proper Peppol AP certificate
     final X509Certificate aAPCert = (X509Certificate) aPKE.getCertificate ();
     {
-      final TrustedCAChecker aAPCAChecker = ePeppolStage.isProduction () ? PeppolTrustedCA.peppolProductionAP ()
-                                                                         : PeppolTrustedCA.peppolTestAP ();
+      final TrustedCAChecker aEffectiveCAChecker;
+      if (APCoreConfig.isOfflineMode ())
+      {
+        // In offline mode, build a CA checker from the keystore's own certificate chain instead
+        // of the Peppol PKI. This allows self-signed test certificates to be used without
+        // Peppol CA enrollment — for test-lab use only.
+        final java.security.cert.Certificate[] aCertChain = aPKE.getCertificateChain ();
+        final X509Certificate[] aCACerts;
+        if (aCertChain.length > 1)
+        {
+          aCACerts = new X509Certificate[aCertChain.length - 1];
+          for (int i = 1; i < aCertChain.length; i++)
+            aCACerts[i - 1] = (X509Certificate) aCertChain[i];
+        }
+        else
+        {
+          // Self-signed: the cert is its own CA
+          aCACerts = new X509Certificate[] { aAPCert };
+        }
+        aEffectiveCAChecker = new TrustedCAChecker (aCACerts);
+        LOGGER.warn ("Offline mode: using test CA from keystore chain, not Peppol PKI");
+      }
+      else
+      {
+        aEffectiveCAChecker = ePeppolStage.isProduction () ? PeppolTrustedCA.peppolProductionAP ()
+                                                           : PeppolTrustedCA.peppolTestAP ();
+      }
 
       // Check the configured Peppol AP certificate
       // * No caching
       // * Use global certificate check mode
-      final ECertificateCheckResult eCheckResult = aAPCAChecker.checkCertificate (aAPCert,
-                                                                                  MetaAS4Manager.getTimestampMgr ()
-                                                                                                .getCurrentDateTime (),
-                                                                                  ETriState.FALSE,
-                                                                                  null);
+      final ECertificateCheckResult eCheckResult = aEffectiveCAChecker.checkCertificate (aAPCert,
+                                                                                          MetaAS4Manager.getTimestampMgr ()
+                                                                                                        .getCurrentDateTime (),
+                                                                                          ETriState.FALSE,
+                                                                                          null);
       if (eCheckResult.isInvalid ())
       {
-        throw new InitializationException ("The provided certificate is not a Peppol AP certificate. Check result: " +
-                                           eCheckResult);
+        if (APCoreConfig.isOfflineMode ())
+          LOGGER.warn ("Offline mode: ignoring AP certificate check result: " + eCheckResult);
+        else
+          throw new InitializationException ("The provided certificate is not a Peppol AP certificate. Check result: " +
+                                             eCheckResult);
       }
-      LOGGER.info ("Successfully checked that the provided Peppol AP certificate is from the correct CA");
+      else
+      {
+        LOGGER.info ("Successfully checked that the provided Peppol AP certificate is from the correct CA");
+      }
 
       // Must be set independent on the enabled/disable status
-      Phase4PeppolDefaultReceiverConfiguration.setAPCAChecker (aAPCAChecker);
+      Phase4PeppolDefaultReceiverConfiguration.setAPCAChecker (aEffectiveCAChecker);
     }
 
     // Check Seat ID configuration

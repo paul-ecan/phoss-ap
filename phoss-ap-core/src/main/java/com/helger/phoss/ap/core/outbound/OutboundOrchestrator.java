@@ -51,6 +51,7 @@ import com.helger.peppolid.factory.IIdentifierFactory;
 import com.helger.phase4.dynamicdiscovery.AS4EndpointDetailProviderConstant;
 import com.helger.phase4.dynamicdiscovery.AS4EndpointDetailProviderPeppol;
 import com.helger.phase4.dynamicdiscovery.Phase4SMPException;
+import com.helger.phase4.peppol.servlet.Phase4PeppolDefaultReceiverConfiguration;
 import com.helger.phase4.logging.Phase4LogCustomizer;
 import com.helger.phase4.model.message.MessageHelperMethods;
 import com.helger.phase4.peppol.Phase4PeppolSender;
@@ -458,30 +459,50 @@ public final class OutboundOrchestrator
       aTxMgr.updateStatus (sTxID, EOutboundStatus.SENDING);
 
       // SMP lookup to find endpoint URL
-      // Try to resolve SMP host - performs NAPTR lookup
       final StopWatch aLookupSW = StopWatch.createdStarted ();
       final SMPClientReadOnly aSMPClient;
-      try
+      final String sStaticSMPURL = APCoreConfig.getPeppolSmpUrl ();
+      if (APCoreConfig.isOfflineMode () && StringHelper.isNotEmpty (sStaticSMPURL))
       {
-        aSMPClient = new CachingSMPClientReadOnly (PeppolNaptrURLProvider.INSTANCE, aReceiverID, aSMLInfo);
-        APBasicConfig.applyHttpProxySettings (aSMPClient.httpClientSettings ());
-
-        // Remember the host URL from NAPTR lookup
-        aSendingReport.setC3SMPURL (aSMPClient.getSMPHostURI ());
+        // Offline mode: bypass SML DNS and use the configured static SMP URL
+        // directly. This allows self-contained test-lab operation without
+        // Peppol network registration.
+        try
+        {
+          aSMPClient = new SMPClientReadOnly (new java.net.URI (sStaticSMPURL));
+          APBasicConfig.applyHttpProxySettings (aSMPClient.httpClientSettings ());
+          aSendingReport.setC3SMPURL (aSMPClient.getSMPHostURI ());
+          LOGGER.info ("Offline mode: using static SMP URL '{}' for outbound lookup", sStaticSMPURL);
+        }
+        catch (final java.net.URISyntaxException ex)
+        {
+          final String sMsg = "Invalid static SMP URL '" + sStaticSMPURL + "'";
+          aSendingReport.setLookupError (sMsg);
+          aLookupSW.stop ();
+          aSendingReport.setLookupDurationMillis (aLookupSW.getMillis ());
+          onPermanentFailure.accept (sMsg + ": " + ex.getMessage ());
+          return aSendingReport;
+        }
       }
-      catch (final SMPDNSResolutionException ex)
+      else
       {
-        final String sMsg = "The participant ID '" + aTx.getReceiverID () + "' is not registered in the Peppol Network";
-        aSendingReport.setLookupError (sMsg);
-        aSendingReport.setLookupException (ex);
-
-        // Remember duration
-        aLookupSW.stop ();
-        aSendingReport.setLookupDurationMillis (aLookupSW.getMillis ());
-
-        onPermanentFailure.accept (sMsg + ". Technical details: " + ex.getMessage ());
-
-        return aSendingReport;
+        // Normal mode: resolve SMP host via SML NAPTR DNS lookup
+        try
+        {
+          aSMPClient = new CachingSMPClientReadOnly (PeppolNaptrURLProvider.INSTANCE, aReceiverID, aSMLInfo);
+          APBasicConfig.applyHttpProxySettings (aSMPClient.httpClientSettings ());
+          aSendingReport.setC3SMPURL (aSMPClient.getSMPHostURI ());
+        }
+        catch (final SMPDNSResolutionException ex)
+        {
+          final String sMsg = "The participant ID '" + aTx.getReceiverID () + "' is not registered in the Peppol Network";
+          aSendingReport.setLookupError (sMsg);
+          aSendingReport.setLookupException (ex);
+          aLookupSW.stop ();
+          aSendingReport.setLookupDurationMillis (aLookupSW.getMillis ());
+          onPermanentFailure.accept (sMsg + ". Technical details: " + ex.getMessage ());
+          return aSendingReport;
+        }
       }
 
       // Perform SMP lookup
@@ -556,8 +577,14 @@ public final class OutboundOrchestrator
         final String sAS4ConversationID = MessageHelperMethods.createRandomConversationID ();
         aSendingReport.setAS4ConversationID (sAS4ConversationID);
 
-        final TrustedCAChecker aAPCAChecker = ePeppolStage.isProduction () ? PeppolTrustedCA.peppolProductionAP ()
-                                                                           : PeppolTrustedCA.peppolTestAP ();
+        // In offline mode, reuse the same CA checker that was set on the
+        // inbound receiver configuration (built from the keystore chain).
+        final TrustedCAChecker aAPCAChecker;
+        if (APCoreConfig.isOfflineMode ())
+          aAPCAChecker = Phase4PeppolDefaultReceiverConfiguration.getAPCAChecker ();
+        else
+          aAPCAChecker = ePeppolStage.isProduction () ? PeppolTrustedCA.peppolProductionAP ()
+                                                      : PeppolTrustedCA.peppolTestAP ();
 
         PeppolReportingItem aReportingItem = null;
         try
@@ -593,6 +620,9 @@ public final class OutboundOrchestrator
                                            .endpointDetailProvider (new AS4EndpointDetailProviderConstant (aReceiverCert,
                                                                                                            sReceiverAPURL,
                                                                                                            sReceiverTechnicalContact))
+                                           // In offline mode the receiver cert CN may not follow the
+                                           // Peppol SeatID pattern — extract it manually from the CN prefix
+                                           .toPartyID (APCoreConfig.isOfflineMode () ? _extractSeatID (aReceiverCert, sC2SeatID) : null)
                                            .certificateConsumer ( (aAPCertificate, aCheckDT, eCertCheckResult) -> {
                                              // Take specifically the
                                              // AP certificate
@@ -654,7 +684,8 @@ public final class OutboundOrchestrator
               aSendingReport.setAS4SendingResult (eResult);
               LOGGER.info (sRealLogPrefix + "Peppol SBDH-building client send result: " + eResult);
 
-              aReportingItem = aBuilder.createPeppolReportingItemAfterSending (aReceiverID.getURIEncoded ());
+              if (!APCoreConfig.isOfflineMode ())
+                aReportingItem = aBuilder.createPeppolReportingItemAfterSending (aReceiverID.getURIEncoded ());
               break;
             }
             case PREBUILT_SBD:
@@ -704,6 +735,7 @@ public final class OutboundOrchestrator
                                            .payloadAndMetadata (aSbdData)
                                            // Remaining IDs
                                            .senderPartyID (sC2SeatID)
+                                           .toPartyID (APCoreConfig.isOfflineMode () ? _extractSeatID (aReceiverCert, sC2SeatID) : null)
                                            // Certificate stuff
                                            .peppolAP_CAChecker (aAPCAChecker)
                                            .endpointDetailProvider (new AS4EndpointDetailProviderConstant (aReceiverCert,
@@ -724,7 +756,8 @@ public final class OutboundOrchestrator
               aSendingReport.setAS4SendingResult (eResult);
               LOGGER.info (sRealLogPrefix + "Peppol Prebuilt-SBDH client send result: " + eResult);
 
-              aReportingItem = aBuilder.createPeppolReportingItemAfterSending (aReceiverID.getURIEncoded ());
+              if (!APCoreConfig.isOfflineMode ())
+                aReportingItem = aBuilder.createPeppolReportingItemAfterSending (aReceiverID.getURIEncoded ());
               break;
             }
             default:
@@ -854,5 +887,32 @@ public final class OutboundOrchestrator
     }
 
     return aSendingReport;
+  }
+
+  // Extract the Peppol Seat ID from the receiver cert CN (part before ':').
+  // Falls back to the sender seat ID when extraction fails — test-lab only.
+  @Nullable
+  private static String _extractSeatID (final java.security.cert.X509Certificate aCert,
+                                        final String sFallback)
+  {
+    if (aCert == null)
+      return sFallback;
+    final String sDN = aCert.getSubjectX500Principal ().getName ();
+    for (final String sPart : sDN.split (","))
+    {
+      final String sTrimmed = sPart.trim ();
+      if (sTrimmed.startsWith ("CN="))
+      {
+        final String sCN = sTrimmed.substring (3);
+        final int nColon = sCN.indexOf (':');
+        final String sSeatID = nColon >= 0 ? sCN.substring (0, nColon) : sCN;
+        if (sSeatID.matches ("P[A-Z]{2}[0-9]{6}"))
+          return sSeatID;
+        // CN doesn't contain a valid Peppol Seat ID — use fallback
+        LOGGER.warn ("Offline mode: could not extract Peppol Seat ID from cert CN '{}', using '{}'", sCN, sFallback);
+        return sFallback;
+      }
+    }
+    return sFallback;
   }
 }

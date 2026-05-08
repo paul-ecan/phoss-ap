@@ -31,7 +31,8 @@ LABEL org.opencontainers.image.version="${VERSION}"
 VOLUME /tmp
 VOLUME /var/phoss-ap/data
 
-ADD https://github.com/phax/phoss-ap/releases/download/phoss-ap-parent-pom-${VERSION}/phoss-ap-webapp-${VERSION}.jar /app.jar
+#ADD https://github.com/phax/phoss-ap/releases/download/phoss-ap-parent-pom-${VERSION}/phoss-ap-webapp-${VERSION}.jar /app.jar
+COPY ./phoss-ap-webapp/target/phoss-ap-webapp-${VERSION}-SNAPSHOT.jar /app.jar
 
 EXPOSE 8080
 

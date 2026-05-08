@@ -1,0 +1,94 @@
+#
+# Copyright (C) 2026 Philip Helger (www.helger.com)
+# philip[at]helger[dot]com
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#         http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+#
+# Docker Compose for running phoss AP with PostgreSQL.
+#
+# Usage:
+#   docker compose up -d
+#   docker compose down
+#
+services:
+  postgres:
+    image: postgres:18-trixie
+    restart: unless-stopped
+    ports:
+      - "55432:5432"
+    environment:
+      POSTGRES_DB: phoss-ap
+      POSTGRES_USER: peppol
+      POSTGRES_PASSWORD: peppol
+    volumes:
+      - pg18data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U peppol -d phoss-ap"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  phoss-ap:
+    image: ecan/phoss-ap:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VERSION: ${VERSION}
+    restart: unless-stopped
+    ports:
+      - "8780:8080"
+    networks:
+      - default
+      - peppol-lab
+    environment:
+      PHOSSAP_JDBC_URL: jdbc:postgresql://postgres:5432/phoss-ap
+      PHOSSAP_JDBC_USER: peppol
+      PHOSSAP_JDBC_PASSWORD: peppol
+      PEPPOL_STAGE: test
+      # Offline mode: skip Peppol PKI checks, disable CRL/OCSP — test-lab only
+      PHOSSAP_OFFLINEMODE_ENABLED: "true"
+      # Self-signed test certificate (mounted from ./certs/)
+      ORG_APACHE_WSS4J_CRYPTO_MERLIN_KEYSTORE_FILE: /var/phoss-ap/certs/test-ap.p12
+      ORG_APACHE_WSS4J_CRYPTO_MERLIN_KEYSTORE_PASSWORD: peppol
+      ORG_APACHE_WSS4J_CRYPTO_MERLIN_KEYSTORE_ALIAS: private_key_for_pkcs12_certificate
+      ORG_APACHE_WSS4J_CRYPTO_MERLIN_KEYSTORE_PRIVATE_PASSWORD: peppol
+      # Inbound receiver check: validate against local SMP
+      PEPPOL_RECEIVER_CHECK_MODE: smp
+      PEPPOL_SMP_URL: http://phoss-smp:8080
+      # The AP's own AS4 endpoint — must match what is registered in the SMP
+      PHASE4_ENDPOINT_ADDRESS: http://phoss-ap:8080/as4
+      # SMP client truststore: our test CA so the AP trusts the SMP's signed XML responses
+      SMPCLIENT_TRUSTSTORE_TYPE: PKCS12
+      SMPCLIENT_TRUSTSTORE_PATH: /var/phoss-ap/certs/smp-truststore.p12
+      SMPCLIENT_TRUSTSTORE_PASSWORD: peppol
+      # Write received documents to filesystem instead of forwarding to an HTTP backend
+      FORWARDING_MODE: filesystem
+      FORWARDING_FILESYSTEM_DIRECTORY: /var/phoss-ap/forwarded/
+    volumes:
+      - ap-data:/var/phoss-ap/data
+      - ./certs:/var/phoss-ap/certs:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  pg18data:
+  ap-data:
+
+networks:
+  peppol-lab:
+    external: true
+
