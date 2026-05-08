@@ -75,7 +75,7 @@ Before running the app you must set these (all marked `CHANGEME` in the file):
 | `phase4.api.requiredtoken` | API auth bearer token |
 | `phossap.jdbc.url/user/password` | Database credentials |
 | `org.apache.wss4j.crypto.merlin.keystore.*` | Peppol PKCS12 certificate |
-| `peppol.reporting.schedule.enabled` | Set `false` to suppress monthly TSR/EUSR submission (test lab) |
+| `peppol.reporting.schedule.enabled` | Monthly TSR/EUSR scheduler; leave at default `true` — offline receiver handles submission |
 
 Database: PostgreSQL is primary (schemas: `ap`, `reporting`, `report`); MySQL is supported. H2 is used for tests. Flyway handles all migrations automatically.
 
@@ -88,6 +88,26 @@ docker compose down
 ```
 
 The Dockerfile is a single-stage build using `eclipse-temurin:21-alpine`. It expects a pre-built JAR at `phoss-ap-webapp/target/phoss-ap-webapp-*-SNAPSHOT.jar`, so run `mvn clean package` first.
+
+## Peppol Reporting
+
+The AP sends monthly TSR (Transaction Statistics Report) and EUSR (End User Statistics Report) to OpenPeppol. In test mode, the receiver `iso6523-actorid-upis::9915:helger` is registered in the local SMP pointing to the AP's own `http://phoss-ap:8080/as4`. The AP sends reports to itself and receives them as normal inbound documents — no external connectivity needed.
+
+To trigger report generation without waiting for the monthly cron:
+
+```bash
+curl -s -X POST "http://localhost:8780/api/reporting/trigger?yearMonth=2026-04" \
+  -H "X-Token: phoss-ap-development-token"
+```
+
+`POST /api/reporting/trigger` is implemented in `phoss-ap-webapp/src/main/java/com/helger/phoss/ap/webapp/controller/ReportingTriggerController.java`. Auth is handled by `ApiTokenFilter` — no per-controller token check needed. The `yearMonth` param is optional (defaults to previous month).
+
+Re-register the SMP entries if the AP cert rotates or the SMP is redeployed from scratch:
+
+```bash
+cd ../phoss-smp/test-scripts
+./register-test-lab.sh
+```
 
 ## Test Sender
 
