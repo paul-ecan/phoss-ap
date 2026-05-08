@@ -26,10 +26,10 @@
   <StandardBusinessDocumentHeader>
     <HeaderVersion>1.0</HeaderVersion>
     <Sender>
-      <Identifier Authority="iso6523-actorid-upis">9915:phoss-ap-test-sender</Identifier>
+      <Identifier Authority="iso6523-actorid-upis">0088:1111111111111</Identifier>
     </Sender>
     <Receiver>
-      <Identifier Authority="iso6523-actorid-upis">9915:localhost-8080</Identifier>
+      <Identifier Authority="iso6523-actorid-upis">0088:2222222222222</Identifier>
     </Receiver>
     <DocumentIdentification>
       <Standard>urn:oasis:names:specification:ubl:schema:xsd:Invoice-2</Standard>
