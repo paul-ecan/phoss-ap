@@ -75,6 +75,7 @@ Before running the app you must set these (all marked `CHANGEME` in the file):
 | `phase4.api.requiredtoken` | API auth bearer token |
 | `phossap.jdbc.url/user/password` | Database credentials |
 | `org.apache.wss4j.crypto.merlin.keystore.*` | Peppol PKCS12 certificate |
+| `peppol.reporting.schedule.enabled` | Set `false` to suppress monthly TSR/EUSR submission (test lab) |
 
 Database: PostgreSQL is primary (schemas: `ap`, `reporting`, `report`); MySQL is supported. H2 is used for tests. Flyway handles all migrations automatically.
 
@@ -87,6 +88,27 @@ docker compose down
 ```
 
 The Dockerfile is a single-stage build using `eclipse-temurin:21-alpine`. It expects a pre-built JAR at `phoss-ap-webapp/target/phoss-ap-webapp-*-SNAPSHOT.jar`, so run `mvn clean package` first.
+
+## Test Sender
+
+`phoss-ap-testsender` is a standalone Spring Boot tool for exercising the outbound API. Build it with:
+
+```bash
+mvn clean package -DskipTests -pl phoss-ap-testsender -am
+```
+
+Scripts in `phoss-ap-testsender/` each send one document type (xml / sbd / pdf) and find the JAR dynamically — no version pinning needed. Pass AP URL and Peppol IDs as CLI args:
+
+```bash
+cd phoss-ap-testsender
+bash run-single-xml.sh \
+  --testsender.target.base-url=http://localhost:8780 \
+  --testsender.target.token=phoss-ap-development-token \
+  --testsender.peppol.sender-id=iso6523-actorid-upis::0088:1111111111111 \
+  --testsender.peppol.receiver-id=iso6523-actorid-upis::0088:2222222222222
+```
+
+A successful send returns `"status":"sent"` and `"reportingStatus":"reported"`. The `run-bulk.sh` and `run-bulk-rampup.sh` scripts exercise concurrency (default: 100 docs, 10 threads).
 
 ## Technology Notes
 
