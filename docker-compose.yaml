@@ -74,6 +74,8 @@ services:
       SMPCLIENT_TRUSTSTORE_TYPE: PKCS12
       SMPCLIENT_TRUSTSTORE_PATH: /var/phoss-ap/certs/smp-truststore.p12
       SMPCLIENT_TRUSTSTORE_PASSWORD: peppol
+      # Disable monthly TSR/EUSR submission to OpenPeppol (unreachable in test lab)
+      PEPPOL_REPORTING_SCHEDULE_ENABLED: "false"
       # Write received documents to filesystem instead of forwarding to an HTTP backend
       FORWARDING_MODE: filesystem
       FORWARDING_FILESYSTEM_DIRECTORY: /var/phoss-ap/forwarded/

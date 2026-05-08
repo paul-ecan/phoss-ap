@@ -684,8 +684,7 @@ public final class OutboundOrchestrator
               aSendingReport.setAS4SendingResult (eResult);
               LOGGER.info (sRealLogPrefix + "Peppol SBDH-building client send result: " + eResult);
 
-              if (!APCoreConfig.isOfflineMode ())
-                aReportingItem = aBuilder.createPeppolReportingItemAfterSending (aReceiverID.getURIEncoded ());
+              aReportingItem = aBuilder.createPeppolReportingItemAfterSending (aReceiverID.getURIEncoded ());
               break;
             }
             case PREBUILT_SBD:
@@ -756,8 +755,7 @@ public final class OutboundOrchestrator
               aSendingReport.setAS4SendingResult (eResult);
               LOGGER.info (sRealLogPrefix + "Peppol Prebuilt-SBDH client send result: " + eResult);
 
-              if (!APCoreConfig.isOfflineMode ())
-                aReportingItem = aBuilder.createPeppolReportingItemAfterSending (aReceiverID.getURIEncoded ());
+              aReportingItem = aBuilder.createPeppolReportingItemAfterSending (aReceiverID.getURIEncoded ());
               break;
             }
             default:
