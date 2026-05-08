@@ -220,6 +220,8 @@ public class TestSenderApplication implements CommandLineRunner
    */
   private static Path _resolvePath (final String sPath) throws IOException
   {
+    if (sPath == null || sPath.isBlank ())
+      return null;
     if (sPath.startsWith ("classpath:"))
     {
       final Resource aResource = new DefaultResourceLoader ().getResource (sPath);

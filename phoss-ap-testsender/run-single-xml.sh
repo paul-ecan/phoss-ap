@@ -17,7 +17,10 @@
 #
 
 # Send a single XML document to the local phoss-ap instance
-java -jar target/phoss-ap-testsender-0.1.0-SNAPSHOT.jar \
+JAR=$(ls target/phoss-ap-testsender-*.jar | grep -v sources | tail -1)
+java -jar "$JAR" \
   --testsender.bulk.enabled=false \
   --testsender.samples.xml=classpath:samples/invoice-ubl.xml \
+  --testsender.samples.sbd= \
+  --testsender.samples.pdf= \
   "$@"

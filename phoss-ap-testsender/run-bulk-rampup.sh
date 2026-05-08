@@ -18,7 +18,8 @@
 
 # Bulk send with gradual ramp-up (5 seconds spread across all documents)
 # Useful for testing how the AP handles increasing load
-java -jar target/phoss-ap-testsender-0.1.0-SNAPSHOT.jar \
+JAR=$(ls target/phoss-ap-testsender-*.jar | grep -v sources | tail -1)
+java -jar "$JAR" \
   --testsender.bulk.enabled=true \
   --testsender.bulk.ramp-up-ms=5000 \
   "$@"

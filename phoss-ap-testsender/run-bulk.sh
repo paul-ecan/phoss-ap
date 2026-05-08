@@ -21,6 +21,7 @@
 # Override via CLI args, e.g.:
 #   ./run-bulk.sh --testsender.bulk.count=500 --testsender.bulk.threads=20
 #   ./run-bulk.sh --testsender.bulk.document-types=xml,pdf --testsender.bulk.mix-ratio=70,30
-java -jar target/phoss-ap-testsender-0.1.0-SNAPSHOT.jar \
+JAR=$(ls target/phoss-ap-testsender-*.jar | grep -v sources | tail -1)
+java -jar "$JAR" \
   --testsender.bulk.enabled=true \
   "$@"
