@@ -65,6 +65,21 @@ public final class APCoreConfig
     return _getConfig ().getAsBoolean ("phossap.offlinemode.enabled", false);
   }
 
+  public static boolean isOfflineModeSkipCaCheck ()
+  {
+    return _getConfig ().getAsBoolean ("phossap.offlinemode.skip-ca-check", isOfflineMode ());
+  }
+
+  public static boolean isOfflineModeSkipSmlDns ()
+  {
+    return _getConfig ().getAsBoolean ("phossap.offlinemode.skip-sml-dns", isOfflineMode ());
+  }
+
+  public static boolean isOfflineModeSkipCrlOcsp ()
+  {
+    return _getConfig ().getAsBoolean ("phossap.offlinemode.skip-crl-ocsp", isOfflineMode ());
+  }
+
   /**
    * @return The configured Peppol network stage (production or test). May be <code>null</code> if
    *         not configured.

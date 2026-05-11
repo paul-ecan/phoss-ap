@@ -150,9 +150,9 @@ public class APServletInit
       WebFileIO.initPaths (new File (sDataPath).getAbsoluteFile (), sServletContextPath, bFileAccessCheck);
     }
 
-    if (APCoreConfig.isOfflineMode ())
+    if (APCoreConfig.isOfflineModeSkipCrlOcsp ())
     {
-      LOGGER.warn ("Offline mode enabled - for development purposes only!");
+      LOGGER.warn ("Offline mode (skip-crl-ocsp) enabled - for development purposes only!");
       // Special setup for offline mode
       CertificateRevocationCheckerDefaults.setRevocationCheckMode (ERevocationCheckMode.NONE);
     }
@@ -253,7 +253,7 @@ public class APServletInit
     final X509Certificate aAPCert = (X509Certificate) aPKE.getCertificate ();
     {
       final TrustedCAChecker aEffectiveCAChecker;
-      if (APCoreConfig.isOfflineMode ())
+      if (APCoreConfig.isOfflineModeSkipCaCheck ())
       {
         // In offline mode, build a CA checker from the keystore's own certificate chain instead
         // of the Peppol PKI. This allows self-signed test certificates to be used without
@@ -290,7 +290,7 @@ public class APServletInit
                                                                                           null);
       if (eCheckResult.isInvalid ())
       {
-        if (APCoreConfig.isOfflineMode ())
+        if (APCoreConfig.isOfflineModeSkipCaCheck ())
           LOGGER.warn ("Offline mode: ignoring AP certificate check result: " + eCheckResult);
         else
           throw new InitializationException ("The provided certificate is not a Peppol AP certificate. Check result: " +

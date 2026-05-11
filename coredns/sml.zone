@@ -1,0 +1,34 @@
+$ORIGIN participant.sml.test.tech.peppol.org.
+$TTL 300
+
+@   SOA ns1.participant.sml.test.tech.peppol.org. hostmaster.participant.sml.test.tech.peppol.org. (
+        2026051202 ; serial
+        3600       ; refresh
+        900        ; retry
+        86400      ; expire
+        300        ; minimum TTL
+    )
+
+@   NS  ns1.participant.sml.test.tech.peppol.org.
+ns1 A   127.0.0.1
+
+; iso6523-actorid-upis::0088:2222222222222  (RECEIVER_ID)
+y7vwtqaemiaomexm5igs6luilummschhmb3cx6t3fzxt4fn7bvzq.iso6523-actorid-upis 300 IN NAPTR 100 10 "U" "Meta:SMP" "!^.*$!http://phoss-smp:8080!" .
+
+; iso6523-actorid-upis::0088:1111111111111  (SENDER_ID)
+rymcp5ad2ihqz3xiddgf2tifluwgqlswfklmtzpdqjjck6ilr6ra.iso6523-actorid-upis 300 IN NAPTR 100 10 "U" "Meta:SMP" "!^.*$!http://phoss-smp:8080!" .
+
+; iso6523-actorid-upis::9915:helger  (Peppol reporting receiver — offline loopback)
+xaspi62pj5mhtmoctwvma5h7nxtovckgda3yquqzex3hc46xp46a.iso6523-actorid-upis 300 IN NAPTR 100 10 "U" "Meta:SMP" "!^.*$!http://phoss-smp:8080!" .
+
+; iso6523-actorid-upis::0242:000306  (MLS receiver, derived from Peppol Seat ID POP000306)
+ruslvhnsd3wsiewze5l6zqlggde6pvkp4ewan2v4ellildm6pvka.iso6523-actorid-upis 300 IN NAPTR 100 10 "U" "Meta:SMP" "!^.*$!http://phoss-smp:8080!" .
+
+; iso6523-actorid-upis::9999:conformance  (conformance test participant)
+776uxq4dg6if7d6hzwepxy52c4sg7iblw6xdmuyc6tcfqfksfodq.iso6523-actorid-upis 300 IN NAPTR 100 10 "U" "Meta:SMP" "!^.*$!http://phoss-smp:8080!" .
+
+; iso6523-actorid-upis::9999:checkscript  (check-test-lab.sh participant)
+fhrgj2pdsm2nspmpbxsaiwoy2j3wxsfmu34ouedza7hkd5wjxp5a.iso6523-actorid-upis 300 IN NAPTR 100 10 "U" "Meta:SMP" "!^.*$!http://phoss-smp:8080!" .
+
+; iso6523-actorid-upis::9999:smltest  (conformance TC-02A.2 registration test participant)
+o7rz4rm5btivsn642adni5jluuqmd7ubma7ufqemiu3ltidu37ma.iso6523-actorid-upis 300 IN NAPTR 100 10 "U" "Meta:SMP" "!^.*$!http://phoss-smp:8080!" .

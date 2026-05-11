@@ -58,8 +58,16 @@ services:
       PHOSSAP_JDBC_USER: peppol
       PHOSSAP_JDBC_PASSWORD: peppol
       PEPPOL_STAGE: test
-      # Offline mode: skip Peppol PKI checks, disable CRL/OCSP — test-lab only
-      PHOSSAP_OFFLINEMODE_ENABLED: "true"
+      # Offline mode fine-grained flags — test-lab only
+      # skip-ca-check: accept self-signed test cert instead of Peppol CA
+      # skip-sml-dns: false — use CoreDNS for real NAPTR lookup
+      # skip-crl-ocsp: disable CRL/OCSP revocation checks
+      PHOSSAP_OFFLINEMODE_ENABLED: "false"
+      PHOSSAP_OFFLINEMODE_SKIP_CA_CHECK: "true"
+      PHOSSAP_OFFLINEMODE_SKIP_SML_DNS: "false"
+      PHOSSAP_OFFLINEMODE_SKIP_CRL_OCSP: "true"
+      # CoreDNS for Peppol NAPTR lookups (resolves edelivery.tech.ec.europa.eu zone)
+      PEPPOL_DNS_SERVERS: "coredns"
       # Self-signed test certificate (mounted from ./certs/)
       ORG_APACHE_WSS4J_CRYPTO_MERLIN_KEYSTORE_FILE: /var/phoss-ap/certs/test-ap.p12
       ORG_APACHE_WSS4J_CRYPTO_MERLIN_KEYSTORE_PASSWORD: peppol
@@ -83,6 +91,16 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+
+  coredns:
+    image: coredns/coredns:latest
+    restart: unless-stopped
+    networks:
+      - peppol-lab
+    volumes:
+      - ./coredns/Corefile:/etc/coredns/Corefile:ro
+      - ./coredns/sml.zone:/etc/coredns/sml.zone:ro
+    command: ["-conf", "/etc/coredns/Corefile"]
 
 volumes:
   pg18data:

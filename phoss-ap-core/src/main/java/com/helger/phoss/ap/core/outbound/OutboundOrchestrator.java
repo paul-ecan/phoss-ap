@@ -462,7 +462,7 @@ public final class OutboundOrchestrator
       final StopWatch aLookupSW = StopWatch.createdStarted ();
       final SMPClientReadOnly aSMPClient;
       final String sStaticSMPURL = APCoreConfig.getPeppolSmpUrl ();
-      if (APCoreConfig.isOfflineMode () && StringHelper.isNotEmpty (sStaticSMPURL))
+      if (APCoreConfig.isOfflineModeSkipSmlDns () && StringHelper.isNotEmpty (sStaticSMPURL))
       {
         // Offline mode: bypass SML DNS and use the configured static SMP URL
         // directly. This allows self-contained test-lab operation without
@@ -580,7 +580,7 @@ public final class OutboundOrchestrator
         // In offline mode, reuse the same CA checker that was set on the
         // inbound receiver configuration (built from the keystore chain).
         final TrustedCAChecker aAPCAChecker;
-        if (APCoreConfig.isOfflineMode ())
+        if (APCoreConfig.isOfflineModeSkipCaCheck ())
           aAPCAChecker = Phase4PeppolDefaultReceiverConfiguration.getAPCAChecker ();
         else
           aAPCAChecker = ePeppolStage.isProduction () ? PeppolTrustedCA.peppolProductionAP ()
@@ -622,7 +622,7 @@ public final class OutboundOrchestrator
                                                                                                            sReceiverTechnicalContact))
                                            // In offline mode the receiver cert CN may not follow the
                                            // Peppol SeatID pattern — extract it manually from the CN prefix
-                                           .toPartyID (APCoreConfig.isOfflineMode () ? _extractSeatID (aReceiverCert, sC2SeatID) : null)
+                                           .toPartyID (APCoreConfig.isOfflineModeSkipCaCheck () ? _extractSeatID (aReceiverCert, sC2SeatID) : null)
                                            .certificateConsumer ( (aAPCertificate, aCheckDT, eCertCheckResult) -> {
                                              // Take specifically the
                                              // AP certificate
@@ -734,7 +734,7 @@ public final class OutboundOrchestrator
                                            .payloadAndMetadata (aSbdData)
                                            // Remaining IDs
                                            .senderPartyID (sC2SeatID)
-                                           .toPartyID (APCoreConfig.isOfflineMode () ? _extractSeatID (aReceiverCert, sC2SeatID) : null)
+                                           .toPartyID (APCoreConfig.isOfflineModeSkipCaCheck () ? _extractSeatID (aReceiverCert, sC2SeatID) : null)
                                            // Certificate stuff
                                            .peppolAP_CAChecker (aAPCAChecker)
                                            .endpointDetailProvider (new AS4EndpointDetailProviderConstant (aReceiverCert,
