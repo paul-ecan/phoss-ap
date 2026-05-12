@@ -80,6 +80,11 @@ public final class APCoreConfig
     return _getConfig ().getAsBoolean ("phossap.offlinemode.skip-crl-ocsp", isOfflineMode ());
   }
 
+  public static boolean isPhase4HttpTrustAllSsl ()
+  {
+    return _getConfig ().getAsBoolean ("phossap.phase4.http.trust-all-ssl", false);
+  }
+
   /**
    * @return The configured Peppol network stage (production or test). May be <code>null</code> if
    *         not configured.

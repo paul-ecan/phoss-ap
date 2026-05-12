@@ -1,0 +1,4 @@
+:443 {
+	tls /var/certs/test-ap.crt /var/certs/test-ap.key
+	reverse_proxy phoss-ap:8080
+}

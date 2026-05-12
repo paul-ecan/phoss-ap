@@ -592,6 +592,8 @@ public final class OutboundOrchestrator
           // Actual sending using Phase4PeppolSender
           final Phase4PeppolHttpClientSettings aHCS = new Phase4PeppolHttpClientSettings ();
           APBasicConfig.applyHttpProxySettings (aHCS);
+          if (APCoreConfig.isPhase4HttpTrustAllSsl ())
+            aHCS.setSSLContextTrustAll ();
 
           final EAS4UserMessageSendResult eResult;
 

@@ -77,7 +77,9 @@ services:
       PEPPOL_RECEIVER_CHECK_MODE: smp
       PEPPOL_SMP_URL: http://phoss-smp:8080
       # The AP's own AS4 endpoint — must match what is registered in the SMP
-      PHASE4_ENDPOINT_ADDRESS: http://phoss-ap:8080/as4
+      PHASE4_ENDPOINT_ADDRESS: https://caddy/as4
+      # Trust all TLS certs for outbound AS4 connections (self-signed test CA)
+      PHOSSAP_PHASE4_HTTP_TRUST_ALL_SSL: "true"
       # SMP client truststore: our test CA so the AP trusts the SMP's signed XML responses
       SMPCLIENT_TRUSTSTORE_TYPE: PKCS12
       SMPCLIENT_TRUSTSTORE_PATH: /var/phoss-ap/certs/smp-truststore.p12
@@ -101,6 +103,19 @@ services:
       - ./coredns/Corefile:/etc/coredns/Corefile:ro
       - ./coredns/sml.zone:/etc/coredns/sml.zone:ro
     command: ["-conf", "/etc/coredns/Corefile"]
+
+  caddy:
+    image: caddy:alpine
+    restart: unless-stopped
+    networks:
+      - default
+    ports:
+      - "8823:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./certs:/var/certs:ro
+    depends_on:
+      - phoss-ap
 
 volumes:
   pg18data:
